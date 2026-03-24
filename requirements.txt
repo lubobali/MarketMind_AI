@@ -1,0 +1,25 @@
+# MarketMind AI — Dependencies
+# Note: PySpark, Delta Lake, MLflow are pre-installed on Databricks clusters
+# These are listed for documentation and local development reference
+
+# Data Sources
+yfinance>=0.2.36
+newsapi-python>=0.2.7
+
+# NLP / Sentiment
+textblob>=0.18.0
+vaderSentiment>=3.3.2
+
+# Visualization
+plotly>=5.18.0
+
+# UI
+gradio>=4.19.0
+
+# Kafka (if using local Kafka producer)
+confluent-kafka>=2.3.0
+
+# Utilities
+requests>=2.31.0
+pandas>=2.1.0
+numpy>=1.26.0

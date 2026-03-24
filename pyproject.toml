@@ -1,0 +1,25 @@
+[project]
+name = "marketmind-ai"
+version = "1.0.0"
+requires-python = ">=3.11"
+
+# ── pytest ──────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --tb=short -m 'not slow'"
+markers = [
+    "slow: marks tests that need Spark session or external APIs — run with pytest -m slow",
+    "integration: marks integration tests",
+]
+
+# ── ruff ────────────────────────────────────────────────
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"

@@ -1,0 +1,417 @@
+============================================================
+  MarketMind AI — Capstone Project Plan
+  Databricks + Spark Bootcamp Final Project
+  Created: March 24, 2026
+============================================================
+
+PROBLEM STATEMENT
+-----------------
+A retail investor cannot process the volume of real-time market data,
+news, and signals needed to make informed decisions. MarketMind AI
+solves this by streaming stock data, processing financial news with NLP,
+building a continuously updated data warehouse, and providing an AI
+agent that answers natural language questions about it all.
+
+ARCHITECTURE
+------------
+Yahoo Finance API ──┐
+                    ├──> Kafka ──> Spark Structured Streaming ──> Delta Live Tables
+Polygon.io News ───┘         (Bronze → Silver → Gold)
+                                        │
+                                        ├──> NLP Sentiment Pipeline (Unstructured Data)
+                                        ├──> Advanced Spark Analytics (UDFs, Window Functions)
+                                        ├──> AI Agent (MLflow + LLM)
+                                        └──> Gradio UI (Chat Interface)
+
+TECH STACK
+----------
+- Databricks (workspace, clusters, notebooks, jobs)
+- Apache Spark (Structured Streaming, DataFrames, SQL)
+- Delta Lake / Delta Live Tables (medallion architecture)
+- Kafka (real-time data ingestion)
+- MLflow (model tracking, serving)
+- Python (all code)
+- Gradio (lightweight chat UI — fast to build, looks good)
+- Plotly (charts and visualizations)
+- yfinance (stock price data)
+- NewsAPI or Polygon.io (financial news)
+
+BOOTCAMP MODULE COVERAGE
+-------------------------
+Module 2 — Delta Lake          → Bronze/Silver/Gold tables, time travel, schema evolution
+Module 3 — Advanced Spark      → UDFs, window functions, Z-ordering, partitioning
+Module 4 — Unstructured Data   → Financial news NLP, sentiment analysis, embeddings
+Module 5 — Kafka Streaming     → Real-time price + news ingestion via Kafka topics
+Module 6 — AI Agents           → Databricks agent with MLflow, tool calling, Gradio UI
+
+DEVELOPMENT WORKFLOW
+---------------------
+1. Design everything in Claude (architecture, schemas, logic)
+2. Write ALL code locally as .py files
+3. Push to GitHub repo (marketmind-ai)
+4. Copy notebooks into Databricks
+5. Run cell by cell on Databricks cluster
+6. Screenshots for README
+
+============================================================
+PHASE 1: PROJECT SETUP & ARCHITECTURE
+============================================================
+Goal: Repo, folder structure, README, architecture diagram
+
+Step 1.1 — Create GitHub repo "marketmind-ai"
+  - Private repo, Python .gitignore
+  - Clone locally or work from Claude
+
+Step 1.2 — Create folder structure
+  marketmind-ai/
+  ├── README.md                          # Project overview + architecture diagram
+  ├── notebooks/
+  │   ├── 01_kafka_producer.py           # Phase 2: Data ingestion
+  │   ├── 02_bronze_streaming.py         # Phase 3: Raw data landing
+  │   ├── 03_silver_transform.py         # Phase 3: Clean + enrich
+  │   ├── 04_gold_aggregation.py         # Phase 3: Analytics-ready tables
+  │   ├── 05_news_ingestion.py           # Phase 4: News data pipeline
+  │   ├── 06_news_nlp_sentiment.py       # Phase 4: NLP + sentiment
+  │   ├── 07_advanced_analytics.py       # Phase 5: UDFs + window functions
+  │   ├── 08_ai_agent.py                 # Phase 6: AI agent with tools
+  │   └── 09_gradio_ui.py               # Phase 7: Chat UI
+  ├── config/
+  │   ├── schemas.py                     # Spark StructType definitions
+  │   └── settings.py                    # Paths, API keys config
+  ├── utils/
+  │   ├── technical_indicators.py        # UDFs for RSI, MACD, Bollinger
+  │   └── sentiment.py                   # Sentiment analysis helpers
+  ├── screenshots/                       # Pipeline DAG, charts, UI
+  └── requirements.txt                   # Python dependencies
+
+Step 1.3 — Write README.md
+  - Project title + tagline
+  - Problem statement
+  - Architecture diagram (ASCII or Mermaid)
+  - Tech stack table
+  - How to run
+  - Screenshots section (filled in at the end)
+
+============================================================
+PHASE 2: KAFKA DATA INGESTION
+============================================================
+Goal: Stream real-time stock prices into Kafka topics
+Module covered: 5 (Structured Streaming Kafka to DLT)
+
+Step 2.1 — Kafka Producer for Stock Prices
+  File: notebooks/01_kafka_producer.py
+  - Connect to yfinance API
+  - Poll prices for 10-15 stocks across different sectors
+    (AAPL, MSFT, NVDA, GOOGL, AMZN, TSLA, JPM, GS, XOM, PFE, etc.)
+  - Publish to Kafka topic: "stock-prices"
+  - Message schema:
+    {
+      "symbol": "AAPL",
+      "price": 178.52,
+      "volume": 45230100,
+      "high": 179.10,
+      "low": 177.80,
+      "open": 178.00,
+      "prev_close": 177.50,
+      "market_cap": 2800000000000,
+      "timestamp": "2026-03-24T14:30:00Z"
+    }
+  - Run as continuous loop (every 30 seconds)
+  - Handle API errors gracefully
+
+Step 2.2 — Kafka Producer for News
+  File: notebooks/05_news_ingestion.py (news part)
+  - Connect to NewsAPI (or Polygon.io news endpoint)
+  - Poll financial news for tracked symbols
+  - Publish to Kafka topic: "stock-news"
+  - Message schema:
+    {
+      "headline": "NVIDIA beats earnings expectations",
+      "source": "Reuters",
+      "symbols": ["NVDA"],
+      "published_at": "2026-03-24T13:00:00Z",
+      "url": "https://...",
+      "summary": "..."
+    }
+  - Run every 5 minutes (news doesn't need sub-minute)
+
+Step 2.3 — Kafka Setup Notes
+  - Document Kafka topic creation commands for Databricks
+  - Alternatively: write JSON files to cloud storage (same pattern as Bitcoin homework)
+    This is simpler and works identically with Spark readStream
+  - Decision: Use file-based streaming if Databricks Kafka setup is complex
+    (graders care about the Spark streaming code, not Kafka ops)
+
+============================================================
+PHASE 3: MEDALLION PIPELINE (Bronze → Silver → Gold)
+============================================================
+Goal: Delta Live Tables pipeline with data quality
+Module covered: 2 (Delta Lake) + 5 (Streaming)
+
+Step 3.1 — Bronze Layer (Raw Landing)
+  File: notebooks/02_bronze_streaming.py
+  - @dlt.table() for stock_prices_bronze
+    - Read from Kafka topic or JSON files (Structured Streaming)
+    - Add ingest_timestamp
+    - Keep ALL raw fields, no transformation
+    - Schema: explicit StructType (like Bitcoin homework)
+  - @dlt.table() for stock_news_bronze
+    - Same pattern for news data
+    - Raw headlines, sources, timestamps
+
+Step 3.2 — Silver Layer (Clean + Enrich)
+  File: notebooks/03_silver_transform.py
+  - @dlt.table() for stock_prices_silver
+    - Read from bronze via dlt.read_stream()
+    - Data quality expectations:
+      @dlt.expect_or_drop("valid_price", "price > 0")
+      @dlt.expect_or_drop("valid_volume", "volume >= 0")
+      @dlt.expect_or_drop("valid_symbol", "symbol IS NOT NULL")
+      @dlt.expect_or_drop("valid_timestamp", "timestamp IS NOT NULL")
+    - Enrich with:
+      - price_change = price - prev_close
+      - price_change_pct = (price - prev_close) / prev_close * 100
+      - volume_category = CASE WHEN volume > X THEN 'high' ...
+      - sector (lookup from config)
+  - @dlt.table() for stock_prices_quarantine
+    - Capture failed records with quarantine_reason
+    - Same pattern as Bitcoin homework
+
+Step 3.3 — Gold Layer (Analytics-Ready)
+  File: notebooks/04_gold_aggregation.py
+  - @dlt.table() for stock_candles_1m
+    - 1-minute OHLCV candlesticks per symbol
+    - Watermark: 2 minutes for late data
+    - open, high, low, close, volume, trade_count
+  - @dlt.table() for sector_performance
+    - Aggregated by sector
+    - avg_change_pct, total_volume, top_gainer, top_loser
+  - @dlt.table() for daily_summary
+    - End-of-day stats per symbol
+    - Partitioned by date (for efficient queries)
+    - Z-ordered by symbol (fast lookups)
+  - @dlt.table() for market_signals
+    - Combines price data + technical indicators
+    - RSI, MACD, Bollinger Band signals
+    - "bullish" / "bearish" / "neutral" labels
+
+============================================================
+PHASE 4: UNSTRUCTURED DATA — NEWS NLP
+============================================================
+Goal: Process financial news with NLP and sentiment analysis
+Module covered: 4 (Managing Unstructured Data)
+
+Step 4.1 — News Silver Processing
+  File: notebooks/06_news_nlp_sentiment.py
+  - Read from stock_news_bronze
+  - Clean text (remove HTML, normalize whitespace)
+  - Extract entities (company names, ticker symbols)
+
+Step 4.2 — Sentiment Analysis
+  - Apply sentiment scoring to each headline + summary
+  - Options (in order of preference):
+    a) Databricks Foundation Model (built-in, no API key needed)
+    b) TextBlob / VADER (simple, works offline)
+    c) Hugging Face FinBERT (finance-specific, best quality)
+  - Output columns:
+    - sentiment_score (-1.0 to 1.0)
+    - sentiment_label ("positive" / "negative" / "neutral")
+    - confidence (0.0 to 1.0)
+
+Step 4.3 — News Gold Tables
+  - @dlt.table() for news_sentiment_silver
+    - Cleaned news with sentiment scores
+    - Linked to stock symbols
+  - @dlt.table() for symbol_sentiment_agg
+    - Aggregate sentiment per symbol per hour
+    - avg_sentiment, article_count, most_positive, most_negative
+  - @dlt.table() for market_mood
+    - Overall market sentiment over time
+    - "Market is feeling bullish today" type signals
+
+============================================================
+PHASE 5: ADVANCED SPARK ANALYTICS
+============================================================
+Goal: UDFs, window functions, optimization
+Module covered: 3 (Databricks and Advanced Spark)
+
+Step 5.1 — Custom UDFs for Technical Indicators
+  File: utils/technical_indicators.py + notebooks/07_advanced_analytics.py
+  - UDF: calculate_rsi(prices_array, period=14)
+    - Relative Strength Index
+  - UDF: calculate_macd(prices_array)
+    - MACD line, signal line, histogram
+  - UDF: calculate_bollinger(prices_array, period=20)
+    - Upper band, middle band, lower band
+  - UDF: classify_signal(rsi, macd, bollinger)
+    - Returns "strong_buy" / "buy" / "hold" / "sell" / "strong_sell"
+  - Register as Spark UDFs with proper return types
+
+Step 5.2 — Window Functions
+  - Moving averages (5-day, 20-day, 50-day) using window functions
+  - Volume-weighted average price (VWAP)
+  - Rank stocks by daily performance within each sector
+  - Detect volume spikes (current vs 20-day avg volume)
+
+Step 5.3 — Optimization
+  - Partition Gold tables by date
+  - Z-order by symbol for fast lookups
+  - OPTIMIZE + VACUUM commands
+  - Compare query performance before/after (document in README)
+
+============================================================
+PHASE 6: AI AGENT
+============================================================
+Goal: Build an AI agent that queries all the data
+Module covered: 6 (Building AI Agents with Databricks)
+
+Step 6.1 — Agent Tools (Functions)
+  File: notebooks/08_ai_agent.py
+  Define tools the agent can call:
+
+  Tool 1: get_stock_price(symbol)
+    - Queries Gold daily_summary table
+    - Returns latest price, change, volume
+
+  Tool 2: get_sector_performance(sector)
+    - Queries sector_performance table
+    - Returns sector stats, top gainers/losers
+
+  Tool 3: get_market_sentiment(symbol=None)
+    - Queries news_sentiment tables
+    - Returns sentiment summary (overall or per symbol)
+
+  Tool 4: get_technical_signals(symbol)
+    - Queries market_signals table
+    - Returns RSI, MACD, Bollinger, buy/sell signal
+
+  Tool 5: compare_stocks(symbol1, symbol2)
+    - Side-by-side comparison from Gold tables
+
+  Tool 6: get_market_summary()
+    - Overall market snapshot
+    - Top gainers, losers, most active, market mood
+
+Step 6.2 — Agent Definition
+  - Use Databricks Foundation Model or OpenAI as the LLM
+  - System prompt: "You are MarketMind AI, an intelligent stock market
+    analyst. Use your tools to answer questions about real-time market
+    data, technical analysis, and news sentiment."
+  - Tool calling: agent decides which tool(s) to use
+  - Multi-step reasoning: "Why did NVDA drop?" → check price + check news
+
+Step 6.3 — MLflow Integration
+  - Log the agent as an MLflow model
+  - Track experiments (different prompts, tool configs)
+  - Register model in MLflow Model Registry
+  - Create serving endpoint (optional but impressive)
+
+============================================================
+PHASE 7: GRADIO UI
+============================================================
+Goal: Attractive chat interface for the AI agent
+Why Gradio: Fast to build, looks professional, runs anywhere
+
+Step 7.1 — Chat Interface
+  File: notebooks/09_gradio_ui.py
+  - Gradio ChatInterface connected to the agent
+  - Dark theme (matches finance aesthetic)
+  - Custom CSS for MarketMind AI branding
+  - Features:
+    - Chat input → agent processes → response with data
+    - Markdown rendering for tables and formatted responses
+    - Example questions as quick-start buttons:
+      "What's the market mood today?"
+      "Compare AAPL vs MSFT"
+      "Which stocks have bullish signals?"
+      "Why is NVDA moving?"
+      "Top gainers in tech sector"
+
+Step 7.2 — Live Charts in Chat
+  - When agent returns price data → embed Plotly chart in response
+  - Candlestick charts for individual stocks
+  - Sector heatmap for market overview
+  - Sentiment trend line for news analysis
+  - Gradio supports Plotly natively (gr.Plot component)
+
+Step 7.3 — Dashboard Tab
+  - Gradio Blocks layout with tabs:
+    Tab 1: Chat (the AI agent)
+    Tab 2: Market Overview (live Plotly charts)
+      - Sector performance bar chart
+      - Top movers table
+      - Market sentiment gauge
+    Tab 3: Technical Signals
+      - Signal table (all stocks with buy/sell/hold)
+      - Filter by sector, signal type
+
+============================================================
+PHASE 8: DOCUMENTATION & POLISH
+============================================================
+Goal: README, screenshots, architecture diagram, submission-ready
+
+Step 8.1 — README.md (Professional)
+  - Project title + tagline
+  - Problem statement (2-3 sentences)
+  - Architecture diagram (Mermaid or clean ASCII)
+  - Tech stack table with icons
+  - Pipeline DAG screenshot
+  - Data quality metrics
+  - Charts screenshots
+  - Agent chat screenshots
+  - How to run (step by step)
+  - Folder structure
+
+Step 8.2 — Screenshots
+  - Pipeline DAG from Databricks DLT UI
+  - Delta table lineage
+  - Data quality dashboard (pass/fail rates)
+  - Plotly charts (dark theme)
+  - Gradio UI with example conversations
+  - MLflow experiment tracking
+
+Step 8.3 — Final Polish
+  - Code comments in all notebooks
+  - Consistent naming conventions
+  - Error handling in all functions
+  - Clean git history
+
+============================================================
+BUILD ORDER (How We Write the Code)
+============================================================
+
+Round 1 — Foundation (Phase 1 + 2)
+  1. Folder structure + README skeleton
+  2. config/schemas.py (all StructType definitions)
+  3. config/settings.py (paths, topics, API config)
+  4. notebooks/01_kafka_producer.py (stock price streaming)
+
+Round 2 — Core Pipeline (Phase 3)
+  5. notebooks/02_bronze_streaming.py
+  6. notebooks/03_silver_transform.py
+  7. notebooks/04_gold_aggregation.py
+
+Round 3 — News + NLP (Phase 2.2 + Phase 4)
+  8. notebooks/05_news_ingestion.py
+  9. utils/sentiment.py
+  10. notebooks/06_news_nlp_sentiment.py
+
+Round 4 — Advanced Analytics (Phase 5)
+  11. utils/technical_indicators.py
+  12. notebooks/07_advanced_analytics.py
+
+Round 5 — AI Agent (Phase 6)
+  13. notebooks/08_ai_agent.py (tools + agent + MLflow)
+
+Round 6 — UI (Phase 7)
+  14. notebooks/09_gradio_ui.py (chat + dashboard)
+
+Round 7 — Polish (Phase 8)
+  15. README.md (final version)
+  16. Screenshots after running in Databricks
+
+============================================================
+ESTIMATED FILES: 12 Python files + README + requirements.txt
+ESTIMATED NOTEBOOKS: 9 Databricks notebooks
+BOOTCAMP MODULES COVERED: ALL 5 (Modules 2-6)
+============================================================
