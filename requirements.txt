@@ -23,3 +23,7 @@ confluent-kafka>=2.3.0
 requests>=2.31.0
 pandas>=2.1.0
 numpy>=1.26.0
+
+# Dev / CI
+ruff>=0.3.0
+pytest>=9.0.0
