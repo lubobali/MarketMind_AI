@@ -199,10 +199,13 @@ Step 3.3 — Gold Layer (Analytics-Ready)
     - "bullish" / "bearish" / "neutral" labels
 
 ============================================================
-PHASE 4: UNSTRUCTURED DATA — NEWS NLP
+PHASE 4: UNSTRUCTURED DATA — NEWS NLP  ✅ DONE (Mar 26)
 ============================================================
 Goal: Process financial news with NLP and sentiment analysis
 Module covered: 4 (Managing Unstructured Data)
+RESULT: 131 articles fetched, dual-model sentiment scored, 15 symbol aggregations,
+        market mood computed. DLT pipeline ran in 2m 22s, all green.
+        10 total tables across both pipelines.
 
 Step 4.1 — News Silver Processing
   File: notebooks/06_news_nlp_sentiment.py
