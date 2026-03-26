@@ -54,7 +54,7 @@ DEVELOPMENT WORKFLOW
 6. Screenshots for README
 
 ============================================================
-PHASE 1: PROJECT SETUP & ARCHITECTURE
+PHASE 1: PROJECT SETUP & ARCHITECTURE  ✅ DONE (Mar 24)
 ============================================================
 Goal: Repo, folder structure, README, architecture diagram
 
@@ -93,10 +93,11 @@ Step 1.3 — Write README.md
   - Screenshots section (filled in at the end)
 
 ============================================================
-PHASE 2: KAFKA DATA INGESTION
+PHASE 2: KAFKA DATA INGESTION  ✅ DONE (Mar 24-25)
 ============================================================
 Goal: Stream real-time stock prices into Kafka topics
 Module covered: 5 (Structured Streaming Kafka to DLT)
+RESULT: 15 stocks fetched, JSON written to DBFS, verified in Databricks
 
 Step 2.1 — Kafka Producer for Stock Prices
   File: notebooks/01_kafka_producer.py
@@ -143,10 +144,12 @@ Step 2.3 — Kafka Setup Notes
     (graders care about the Spark streaming code, not Kafka ops)
 
 ============================================================
-PHASE 3: MEDALLION PIPELINE (Bronze → Silver → Gold)
+PHASE 3: MEDALLION PIPELINE (Bronze → Silver → Gold)  ✅ DONE (Mar 25)
 ============================================================
 Goal: Delta Live Tables pipeline with data quality
 Module covered: 2 (Delta Lake) + 5 (Streaming)
+RESULT: Full DLT pipeline ran in 64s. 15 Bronze → 15 Silver (0 quarantined)
+        → 15 daily summaries + 5 sector aggregations. All green in Databricks.
 
 Step 3.1 — Bronze Layer (Raw Landing)
   File: notebooks/02_bronze_streaming.py
