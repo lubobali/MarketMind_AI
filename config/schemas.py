@@ -54,3 +54,41 @@ NEWS_RAW_SCHEMA = Schema(
         SchemaField("published_at", "string"),
     ]
 )
+
+# ── News scored schema (Silver) ───────────────────────
+NEWS_SCORED_SCHEMA = Schema(
+    [
+        SchemaField("headline", "string"),
+        SchemaField("summary", "string"),
+        SchemaField("source", "string"),
+        SchemaField("url", "string"),
+        SchemaField("symbols", "array<string>"),
+        SchemaField("published_at", "string"),
+        SchemaField("sentiment_score", "double"),
+        SchemaField("sentiment_label", "string"),
+        SchemaField("confidence", "double"),
+    ]
+)
+
+# ── Symbol sentiment aggregation schema (Gold) ────────
+SYMBOL_SENTIMENT_AGG_SCHEMA = Schema(
+    [
+        SchemaField("symbol", "string", nullable=False),
+        SchemaField("avg_sentiment", "double"),
+        SchemaField("article_count", "long"),
+        SchemaField("most_positive", "string"),
+        SchemaField("most_negative", "string"),
+    ]
+)
+
+# ── Market mood schema (Gold) ─────────────────────────
+MARKET_MOOD_SCHEMA = Schema(
+    [
+        SchemaField("mood", "string"),
+        SchemaField("avg_score", "double"),
+        SchemaField("article_count", "long"),
+        SchemaField("positive_count", "long"),
+        SchemaField("negative_count", "long"),
+        SchemaField("neutral_count", "long"),
+    ]
+)
