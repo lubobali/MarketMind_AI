@@ -22,7 +22,6 @@
 import dlt
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
-    ArrayType,
     DoubleType,
     StringType,
     StructField,
@@ -33,16 +32,7 @@ from pyspark.sql.types import (
 
 # ── Configuration ──────────────────────────────────────
 
-RAW_NEWS_PATH = "/mnt/marketmind/raw/news/"
-
-NEWS_SCHEMA = StructType([
-    StructField("headline", StringType(), nullable=True),
-    StructField("summary", StringType(), nullable=True),
-    StructField("source", StringType(), nullable=True),
-    StructField("url", StringType(), nullable=True),
-    StructField("symbols", ArrayType(StringType()), nullable=True),
-    StructField("published_at", StringType(), nullable=True),
-])
+RAW_NEWS_TABLE = "bootcamp_students.lubo_marketmind_ai.raw_stock_news"
 
 # COMMAND ----------
 
@@ -62,10 +52,7 @@ NEWS_SCHEMA = StructType([
 def stock_news_bronze():
     return (
         spark.readStream
-        .format("json")
-        .schema(NEWS_SCHEMA)
-        .option("maxFilesPerTrigger", 1)
-        .load(RAW_NEWS_PATH)
+        .table(RAW_NEWS_TABLE)
         .withColumn("ingest_time", F.current_timestamp())
         .withColumn("pub_time", F.to_timestamp(F.col("published_at")))
     )
