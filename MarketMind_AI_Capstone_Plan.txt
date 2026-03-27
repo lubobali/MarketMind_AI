@@ -236,34 +236,46 @@ Step 4.3 — News Gold Tables
     - "Market is feeling bullish today" type signals
 
 ============================================================
-PHASE 5: ADVANCED SPARK ANALYTICS
+PHASE 5: ADVANCED SPARK ANALYTICS  ✅ DONE (Mar 27)
 ============================================================
 Goal: UDFs, window functions, optimization
 Module covered: 3 (Databricks and Advanced Spark)
+RESULT: 4 UDFs, 4 window functions, 5 new tables, 208 tests passing.
+        Tested in Databricks with 915 rows (61 days x 15 symbols).
+        Real RSI/MACD/Bollinger values, buy/sell signals, 26 volume spikes detected.
+        Commit b9ee032 on develop.
 
-Step 5.1 — Custom UDFs for Technical Indicators
-  File: utils/technical_indicators.py + notebooks/07_advanced_analytics.py
-  - UDF: calculate_rsi(prices_array, period=14)
-    - Relative Strength Index
-  - UDF: calculate_macd(prices_array)
-    - MACD line, signal line, histogram
-  - UDF: calculate_bollinger(prices_array, period=20)
-    - Upper band, middle band, lower band
-  - UDF: classify_signal(rsi, macd, bollinger)
-    - Returns "strong_buy" / "buy" / "hold" / "sell" / "strong_sell"
-  - Register as Spark UDFs with proper return types
+Step 5.1 — Custom UDFs for Technical Indicators  ✅
+  Files: utils/technical_indicators.py (local) + databricks_notebooks/05_advanced_analytics.py (inline UDFs)
+  - UDF: calculate_rsi(prices_array, period=14) — Wilder's smoothing
+  - UDF: calculate_macd(prices_array, 12/26/9) — returns struct (macd_line, signal_line, histogram)
+  - UDF: calculate_bollinger(prices_array, period=20, 2σ) — returns struct (upper, middle, lower)
+  - UDF: classify_signal(rsi, macd_histogram, price, bb_upper, bb_lower) — score-based classifier
+  - All registered as Spark UDFs with proper return types (DoubleType, StructType, StringType)
 
-Step 5.2 — Window Functions
-  - Moving averages (5-day, 20-day, 50-day) using window functions
-  - Volume-weighted average price (VWAP)
-  - Rank stocks by daily performance within each sector
-  - Detect volume spikes (current vs 20-day avg volume)
+Step 5.2 — Window Functions  ✅
+  - Moving averages (5/20/50-day SMA) using Window.rowsBetween()
+  - VWAP (20-day rolling volume-weighted average price)
+  - Sector ranking (rank + percentile within sector per day)
+  - Volume spike detection (current vs 20-day avg, threshold 2.0x)
 
-Step 5.3 — Optimization
-  - Partition Gold tables by date
-  - Z-order by symbol for fast lookups
-  - OPTIMIZE + VACUUM commands
-  - Compare query performance before/after (document in README)
+Step 5.3 — Optimization  ✅
+  - All 5 new tables partitioned by date
+  - Z-ordered by symbol (OPTIMIZE + ZORDER)
+  - VACUUM on all tables
+
+Step 5.4 — Seed Historical Data  ✅
+  File: databricks_notebooks/05a_seed_historical_data.py
+  - Fetches 60 trading days from yfinance for all 15 symbols
+  - Writes to stock_daily_summary (overwrite mode)
+  - Required because DLT pipeline only had 1 day of data
+
+New tables created:
+  - bootcamp_students.lubo_marketmind_ai.technical_indicators (15 rows)
+  - bootcamp_students.lubo_marketmind_ai.market_signals (15 rows)
+  - bootcamp_students.lubo_marketmind_ai.moving_averages (915 rows)
+  - bootcamp_students.lubo_marketmind_ai.sector_rankings (915 rows)
+  - bootcamp_students.lubo_marketmind_ai.volume_spikes (900 rows)
 
 ============================================================
 PHASE 6: AI AGENT
