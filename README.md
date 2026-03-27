@@ -4,6 +4,8 @@
 
 Capstone project for the Databricks + Apache Spark Bootcamp. Covers all 5 modules: Delta Lake, Advanced Spark, Unstructured Data, Kafka Streaming, and AI Agents.
 
+![Chat Interface](docs/screenshots/4.png)
+
 ---
 
 ## Problem Statement
@@ -38,39 +40,17 @@ Financial News ────┘         (Bronze → Silver → Gold)
 | **yfinance** | Stock price data (15 stocks, 5 sectors) |
 | **Python** | All code, 308 tests |
 
-## Screenshots
+## Delta Live Tables Pipeline
 
-### Gradio Chat Interface
-8 example questions, dark theme, MarketMind AI branding.
+The medallion architecture processes raw stock prices and news through Bronze → Silver → Gold layers with data quality expectations. Zero quarantined records.
 
-![Chat Interface](docs/screenshots/4.png)
+**Stock Price Pipeline** — streaming tables with 4 DLT expectations:
 
-### Dashboard — Sector Performance
-15 stocks tracked across 5 sectors. Buy/Sell/Hold signal summary with sector performance chart.
+![Stock Pipeline](docs/screenshots/7.png)
 
-![Dashboard](docs/screenshots/1.png)
-
-### Market Overview
-All 15 stocks ranked by daily performance. Green = gainers, red = losers.
-
-![Market Overview](docs/screenshots/2.png)
-
-### Technical Signals Table
-Buy/Sell/Hold classification using RSI, MACD, and Bollinger Bands.
-
-![Signals](docs/screenshots/3.png)
-
-### DLT Pipeline — News Sentiment
-131 articles processed through Bronze → Silver → Gold with NLP sentiment scoring.
+**News Sentiment Pipeline** — 131 articles processed with dual-model NLP scoring:
 
 ![News Pipeline](docs/screenshots/5.png)
-
-### DLT Pipeline — Stock Prices
-Full medallion architecture with data quality expectations (0 quarantined records).
-
-![Stock Pipeline](docs/screenshots/6.png)
-
-![Stock Pipeline DAG](docs/screenshots/7.png)
 
 ## Data Coverage
 
@@ -93,6 +73,14 @@ Full medallion architecture with data quality expectations (0 quarantined record
 | **Gold** | stock_daily_summary, sector_performance, symbol_sentiment_agg, market_mood |
 | **Analytics** | technical_indicators, market_signals, moving_averages, sector_rankings, volume_spikes |
 
+## Advanced Spark Analytics
+
+4 custom UDFs (RSI, MACD, Bollinger Bands, signal classifier) and window functions (SMA, VWAP, sector ranking, volume spike detection). All tables partitioned by date and Z-ordered by symbol.
+
+Buy/Sell/Hold classification computed from RSI + MACD + Bollinger Bands:
+
+![Signals Table](docs/screenshots/3.png)
+
 ## AI Agent
 
 The MarketMind AI agent uses **Meta Llama 3.3 70B Instruct** with function calling to query Delta tables and answer natural language questions.
@@ -106,6 +94,22 @@ The MarketMind AI agent uses **Meta Llama 3.3 70B Instruct** with function calli
 - `get_market_summary` — Top gainers, losers, most active, volume spikes
 
 **Performance:** 6 test queries, avg 2.62s latency, multi-step reasoning (up to 4 tool calls per query).
+
+## Gradio UI
+
+3-tab interface: Chat (AI agent with 8 example questions), Dashboard (sector heatmap + market overview), and Signals (technical signal table).
+
+**Dashboard** — 15 stocks tracked, signal distribution, sector performance chart:
+
+![Dashboard](docs/screenshots/1.png)
+
+**Market Overview** — All stocks ranked by daily performance:
+
+![Market Overview](docs/screenshots/2.png)
+
+**Full DLT Pipeline DAG** — Both pipelines running in Databricks:
+
+![Pipeline DAG](docs/screenshots/6.png)
 
 ## Bootcamp Module Coverage
 
