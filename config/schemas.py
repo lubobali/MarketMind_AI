@@ -92,3 +92,84 @@ MARKET_MOOD_SCHEMA = Schema(
         SchemaField("neutral_count", "long"),
     ]
 )
+
+
+# ══════════════════════════════════════════════════════════════
+#  Phase 5 — Advanced Analytics schemas
+# ══════════════════════════════════════════════════════════════
+
+# ── Technical indicators per symbol ─────────────────────────
+TECHNICAL_INDICATORS_SCHEMA = Schema(
+    [
+        SchemaField("symbol", "string", nullable=False),
+        SchemaField("sector", "string"),
+        SchemaField("latest_date", "date"),
+        SchemaField("latest_close", "double"),
+        SchemaField("rsi", "double"),
+        SchemaField("macd_line", "double"),
+        SchemaField("macd_signal", "double"),
+        SchemaField("macd_histogram", "double"),
+        SchemaField("bb_upper", "double"),
+        SchemaField("bb_middle", "double"),
+        SchemaField("bb_lower", "double"),
+    ]
+)
+
+# ── Market signals (buy/sell/hold) ──────────────────────────
+MARKET_SIGNALS_SCHEMA = Schema(
+    [
+        SchemaField("symbol", "string", nullable=False),
+        SchemaField("sector", "string"),
+        SchemaField("latest_date", "date"),
+        SchemaField("latest_close", "double"),
+        SchemaField("rsi", "double"),
+        SchemaField("macd_line", "double"),
+        SchemaField("macd_signal", "double"),
+        SchemaField("macd_histogram", "double"),
+        SchemaField("bb_upper", "double"),
+        SchemaField("bb_middle", "double"),
+        SchemaField("bb_lower", "double"),
+        SchemaField("signal", "string"),
+    ]
+)
+
+# ── Moving averages + VWAP ──────────────────────────────────
+MOVING_AVERAGES_SCHEMA = Schema(
+    [
+        SchemaField("symbol", "string", nullable=False),
+        SchemaField("sector", "string"),
+        SchemaField("date", "date"),
+        SchemaField("day_close", "double"),
+        SchemaField("total_volume", "long"),
+        SchemaField("sma_5", "double"),
+        SchemaField("sma_20", "double"),
+        SchemaField("sma_50", "double"),
+        SchemaField("vwap_20", "double"),
+    ]
+)
+
+# ── Sector rankings ─────────────────────────────────────────
+SECTOR_RANKINGS_SCHEMA = Schema(
+    [
+        SchemaField("symbol", "string", nullable=False),
+        SchemaField("sector", "string"),
+        SchemaField("date", "date"),
+        SchemaField("avg_change_pct", "double"),
+        SchemaField("sector_rank", "integer"),
+        SchemaField("sector_size", "integer"),
+        SchemaField("percentile", "double"),
+    ]
+)
+
+# ── Volume spikes ───────────────────────────────────────────
+VOLUME_SPIKES_SCHEMA = Schema(
+    [
+        SchemaField("symbol", "string", nullable=False),
+        SchemaField("sector", "string"),
+        SchemaField("date", "date"),
+        SchemaField("total_volume", "long"),
+        SchemaField("avg_volume_20d", "long"),
+        SchemaField("volume_ratio", "double"),
+        SchemaField("is_spike", "boolean"),
+    ]
+)
