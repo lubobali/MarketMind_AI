@@ -100,7 +100,11 @@ print(f"Data loaded — {len(latest_daily)} stocks, latest date: {latest_date}")
 
 # COMMAND ----------
 
-# ── Tool implementations (inline — same as 06_ai_agent.py) ──
+# ── Tool implementations ───────────────────────────────────────────────
+# NOTE: These are inlined from utils/agent_tools.py because Databricks
+# notebooks cannot import from local packages without `pip install -e .`.
+# The CANONICAL source is utils/agent_tools.py (tested with 57 unit tests).
+# If you modify tool logic, update utils/agent_tools.py FIRST, then sync here.
 
 def get_stock_price(symbol):
     symbol = symbol.upper().strip()
@@ -304,7 +308,14 @@ def run_agent(query, max_iterations=5):
 
         for tc in msg.tool_calls:
             fn_name = tc.function.name
-            fn_args = json.loads(tc.function.arguments)
+            try:
+                fn_args = json.loads(tc.function.arguments)
+            except (json.JSONDecodeError, TypeError):
+                fn_args = {}
+                result = json.dumps({"error": f"Malformed arguments for {fn_name}"})
+                tools_used.append({"tool": fn_name, "args": fn_args})
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+                continue
             fn = TOOL_REGISTRY.get(fn_name)
             result = fn(**fn_args) if fn else json.dumps({"error": f"Unknown tool: {fn_name}"})
             tools_used.append({"tool": fn_name, "args": fn_args})

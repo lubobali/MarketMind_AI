@@ -190,6 +190,18 @@ class TestMarketMindAgent:
         # Should not crash — unknown tool returns error string
         assert result["answer"] is not None
 
+    def test_malformed_json_arguments_handled(self, agent):
+        """If LLM emits malformed JSON arguments, agent handles gracefully."""
+        tool_response = _make_tool_call_response("get_stock_price", "not valid json{{{")
+        final_response = _make_final_response("Sorry, there was an error.")
+
+        agent.client.chat.completions.create.side_effect = [tool_response, final_response]
+
+        result = agent.run("Price of NVDA?")
+        assert result["answer"] is not None
+        assert len(result["tools_used"]) == 1
+        assert result["tools_used"][0]["args"] == {}
+
     def test_result_includes_latency(self, agent):
         """Result dict should include latency_seconds."""
         agent.client.chat.completions.create.return_value = _make_final_response("Done.")

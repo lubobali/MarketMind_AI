@@ -179,6 +179,37 @@ python -m pytest tests/ -q    # 308 tests
 ruff check .                  # Linting
 ```
 
+## Data Freshness
+
+The Gradio UI displays data from Delta tables, **not live market feeds**. The data reflects the most recent pipeline run:
+
+- **Stock prices**: Seeded from yfinance via `05a_seed_historical_data.py` (60 trading days). Re-run to refresh.
+- **News sentiment**: Fetched by `04_news_producer.py` from Yahoo Finance RSS. Re-run to get latest articles.
+- **Technical indicators**: Computed by `05_advanced_analytics.py` from `stock_daily_summary`. Re-run after refreshing price data.
+
+To get fresh data: re-run the producer notebooks, then the DLT pipelines, then the analytics notebook. The Gradio UI reads from the updated tables on next launch.
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| **`/mnt/` permission denied** | Use Delta tables instead of DBFS paths. Write to `bootcamp_students.lubo_marketmind_ai.*` |
+| **DLT pipeline fails on first run** | Ensure the target schema exists: `CREATE SCHEMA IF NOT EXISTS bootcamp_students.lubo_marketmind_ai` |
+| **`%pip install` slow or fails** | Normal on first run (~1-2 min). Databricks caches packages after first install. |
+| **yfinance returns empty data** | Market may be closed. yfinance returns NaN for weekends/holidays. The seed script handles this gracefully. |
+| **Foundation Model 429 errors** | Rate limit hit. Wait 30 seconds and retry. The agent has a 5-iteration safety limit. |
+| **Gradio URL not loading** | Ensure `share=True` in `app.launch()`. Databricks proxy URLs require the public share link. |
+| **DLT-created tables can't be overwritten** | DLT owns those tables. `DROP TABLE` first, then re-run the pipeline. |
+| **News producer finds 0 articles** | Yahoo Finance RSS may be rate-limited. Wait a few minutes and retry. |
+
+### DLT Pipeline Setup
+
+1. Go to **Workflows > Delta Live Tables > Create Pipeline**
+2. Set **Source**: select the notebook (`02_dlt_pipeline.py` or `03_news_pipeline.py`)
+3. Set **Target schema**: `bootcamp_students.lubo_marketmind_ai`
+4. Set **Pipeline mode**: Triggered (or Continuous for real-time)
+5. Click **Start** — the DAG will appear showing Bronze → Silver → Gold flow
+
 ## Stats
 
 - **308 tests** (unit + integration) — all passing

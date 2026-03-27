@@ -182,18 +182,54 @@ def stock_prices_quarantine():
     partition_cols=["date"],
 )
 def stock_daily_summary():
+    """Deterministic OHLCV: open/close resolved by trade_time ordering."""
     return (
         dlt.read("stock_prices_silver")
         .withColumn("date", F.to_date("trade_time"))
         .groupBy("symbol", "date", "sector")
         .agg(
-            F.first("open").alias("day_open"),
+            F.min_by("open", "trade_time").alias("day_open"),
             F.max("high").alias("day_high"),
             F.min("low").alias("day_low"),
-            F.last("price").alias("day_close"),
+            F.max_by("price", "trade_time").alias("day_close"),
             F.sum("volume").alias("total_volume"),
             F.count("*").alias("trade_count"),
             F.avg("price_change_pct").alias("avg_change_pct"),
+        )
+    )
+
+# COMMAND ----------
+
+@dlt.table(
+    name="stock_candles_1m",
+    comment="1-minute OHLCV candlesticks per symbol — watermarked for late data",
+    table_properties={
+        "quality": "gold",
+        "pipelines.autoOptimize.managed": "true",
+    },
+)
+def stock_candles_1m():
+    """Windowed 1-minute aggregation with 2-minute watermark for late arrivals."""
+    return (
+        dlt.read_stream("stock_prices_silver")
+        .withWatermark("trade_time", "2 minutes")
+        .groupBy(
+            "symbol",
+            F.window("trade_time", "1 minute"),
+        )
+        .agg(
+            F.min_by("open", "trade_time").alias("open"),
+            F.max("high").alias("high"),
+            F.min("low").alias("low"),
+            F.max_by("price", "trade_time").alias("close"),
+            F.sum("volume").alias("volume"),
+            F.count("*").alias("trade_count"),
+        )
+        .select(
+            "symbol",
+            F.col("window.start").alias("candle_start"),
+            F.col("window.end").alias("candle_end"),
+            "open", "high", "low", "close", "volume", "trade_count",
         )
     )
 

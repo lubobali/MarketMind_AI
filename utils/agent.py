@@ -225,7 +225,14 @@ class MarketMindAgent:
             # Execute each tool call
             for tc in assistant_msg.tool_calls:
                 fn_name = tc.function.name
-                fn_args = json.loads(tc.function.arguments)
+                try:
+                    fn_args = json.loads(tc.function.arguments)
+                except (json.JSONDecodeError, TypeError):
+                    fn_args = {}
+                    result_str = json.dumps({"error": f"Malformed arguments for {fn_name}"})
+                    tools_used.append({"tool": fn_name, "args": fn_args})
+                    messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str})
+                    continue
 
                 result_str = self._dispatch_tool(fn_name, fn_args)
                 tools_used.append({"tool": fn_name, "args": fn_args})

@@ -20,6 +20,7 @@
 # COMMAND ----------
 
 import dlt
+import pandas as pd
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DoubleType,
@@ -67,22 +68,30 @@ def stock_news_bronze():
 
 # COMMAND ----------
 
-# ── Sentiment UDF ────────────────────────────────────────
-# Imports inside the UDF to ensure they're available on workers
-@F.udf(
-    returnType=StructType([
-        StructField("sentiment_score", DoubleType()),
-        StructField("sentiment_label", StringType()),
-        StructField("confidence", DoubleType()),
-    ])
-)
-def score_text_udf(headline, summary):
-    """Score combined headline + summary text with dual-model sentiment."""
+# ── Sentiment Pandas UDF ─────────────────────────────────────
+# Pandas UDF instantiates VADER once per batch (not per row) for efficiency.
+# Returns a struct with sentiment_score, sentiment_label, confidence.
+
+SENTIMENT_SCHEMA = StructType([
+    StructField("sentiment_score", DoubleType()),
+    StructField("sentiment_label", StringType()),
+    StructField("confidence", DoubleType()),
+])
+
+@F.pandas_udf(SENTIMENT_SCHEMA, F.PandasUDFType.SCALAR)
+def score_text_udf(headline_series: pd.Series, summary_series: pd.Series) -> pd.DataFrame:
+    """Score headline + summary with dual-model sentiment (VADER + TextBlob).
+
+    Uses pandas_udf so VADER analyzer is created once per batch, not per row.
+    """
     import html as html_mod
     import re
 
     from textblob import TextBlob
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+    # Instantiate ONCE per batch — this is the key performance improvement
+    vader = SentimentIntensityAnalyzer()
 
     # ── Finance keyword modifiers ────────────────────────
     POSITIVE_KW = {
@@ -105,59 +114,54 @@ def score_text_udf(headline, summary):
     ]
 
     def _clean(text):
-        if not text:
+        if not text or (isinstance(text, float)):
             return ""
-        text = html_mod.unescape(text)
+        text = html_mod.unescape(str(text))
         text = re.sub(r"<[^>]+>", "", text)
         text = re.sub(r"\s+", " ", text)
         return text.strip()
 
-    h = _clean(headline or "")
-    s = _clean(summary or "")
-    combined = f"{h}. {s}".strip(". ")
+    def _score_one(headline, summary):
+        h = _clean(headline)
+        s = _clean(summary)
+        combined = f"{h}. {s}".strip(". ")
 
-    if not combined:
-        return (0.0, "neutral", 1.0)
+        if not combined:
+            return (0.0, "neutral", 1.0)
 
-    # VADER
-    vader = SentimentIntensityAnalyzer()
-    vader_compound = vader.polarity_scores(combined)["compound"]
+        vader_compound = vader.polarity_scores(combined)["compound"]
+        blob_polarity = TextBlob(combined).sentiment.polarity
 
-    # TextBlob
-    blob_polarity = TextBlob(combined).sentiment.polarity
+        text_lower = combined.lower()
+        boost = 0.0
+        for kw, mod in POSITIVE_KW.items():
+            if kw in text_lower:
+                boost += mod
+        for kw, mod in NEGATIVE_KW.items():
+            if kw in text_lower:
+                boost += mod
+        boost = max(-0.5, min(0.5, boost))
 
-    # Finance boost
-    text_lower = combined.lower()
-    boost = 0.0
-    for kw, mod in POSITIVE_KW.items():
-        if kw in text_lower:
-            boost += mod
-    for kw, mod in NEGATIVE_KW.items():
-        if kw in text_lower:
-            boost += mod
-    boost = max(-0.5, min(0.5, boost))
+        dampen = any(p in text_lower for p in NEUTRAL_DAMPENERS)
 
-    # Neutral dampening
-    dampen = any(p in text_lower for p in NEUTRAL_DAMPENERS)
+        raw = (vader_compound * 0.6) + (blob_polarity * 0.4) + boost
+        if dampen:
+            raw *= 0.3
+        final = max(-1.0, min(1.0, raw))
 
-    # Combine
-    raw = (vader_compound * 0.6) + (blob_polarity * 0.4) + boost
-    if dampen:
-        raw *= 0.3
-    final = max(-1.0, min(1.0, raw))
+        confidence = max(0.0, min(1.0, 1.0 - abs(vader_compound - blob_polarity)))
 
-    # Confidence
-    confidence = max(0.0, min(1.0, 1.0 - abs(vader_compound - blob_polarity)))
+        if final > 0.05:
+            label = "positive"
+        elif final < -0.05:
+            label = "negative"
+        else:
+            label = "neutral"
 
-    # Label
-    if final > 0.05:
-        label = "positive"
-    elif final < -0.05:
-        label = "negative"
-    else:
-        label = "neutral"
+        return (round(final, 4), label, round(confidence, 4))
 
-    return (round(final, 4), label, round(confidence, 4))
+    results = [_score_one(h, s) for h, s in zip(headline_series, summary_series)]
+    return pd.DataFrame(results, columns=["sentiment_score", "sentiment_label", "confidence"])
 
 # COMMAND ----------
 

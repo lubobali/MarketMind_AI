@@ -114,7 +114,11 @@ print(f"Market mood: {'available' if market_mood else 'not available'}")
 
 # COMMAND ----------
 
-# ── Tool implementations (inline — same logic as utils/agent_tools.py) ──
+# ── Tool implementations ───────────────────────────────────────────────
+# NOTE: These are inlined from utils/agent_tools.py because Databricks
+# notebooks cannot import from local packages without `pip install -e .`.
+# The CANONICAL source is utils/agent_tools.py (tested with 57 unit tests).
+# If you modify tool logic, update utils/agent_tools.py FIRST, then sync here.
 
 def get_stock_price(symbol):
     symbol = symbol.upper().strip()
@@ -327,7 +331,15 @@ def run_agent(query, max_iterations=5, verbose=True):
 
         for tc in msg.tool_calls:
             fn_name = tc.function.name
-            fn_args = json.loads(tc.function.arguments)
+            try:
+                fn_args = json.loads(tc.function.arguments)
+            except (json.JSONDecodeError, TypeError):
+                fn_args = {}
+                result = json.dumps({"error": f"Malformed arguments for {fn_name}"})
+                tools_used.append({"tool": fn_name, "args": fn_args})
+                messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+                continue
+
             if verbose:
                 print(f"  Tool: {fn_name}({fn_args})")
 
