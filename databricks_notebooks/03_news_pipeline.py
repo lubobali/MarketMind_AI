@@ -124,14 +124,25 @@ def score_text_udf(headline_series: pd.Series, summary_series: pd.Series) -> pd.
     def _score_one(headline, summary):
         h = _clean(headline)
         s = _clean(summary)
-        combined = f"{h}. {s}".strip(". ")
 
-        if not combined:
+        if not h and not s:
             return (0.0, "neutral", 1.0)
 
-        vader_compound = vader.polarity_scores(combined)["compound"]
-        blob_polarity = TextBlob(combined).sentiment.polarity
+        # Score headline and summary separately, weight headline higher (0.6/0.4)
+        # Headlines carry stronger signal — concise, editorialized, action-oriented
+        if h and s:
+            h_vader = vader.polarity_scores(h)["compound"]
+            s_vader = vader.polarity_scores(s)["compound"]
+            vader_compound = h_vader * 0.6 + s_vader * 0.4
+            h_blob = TextBlob(h).sentiment.polarity
+            s_blob = TextBlob(s).sentiment.polarity
+            blob_polarity = h_blob * 0.6 + s_blob * 0.4
+        else:
+            text = h or s
+            vader_compound = vader.polarity_scores(text)["compound"]
+            blob_polarity = TextBlob(text).sentiment.polarity
 
+        combined = f"{h}. {s}".strip(". ")
         text_lower = combined.lower()
         boost = 0.0
         for kw, mod in POSITIVE_KW.items():

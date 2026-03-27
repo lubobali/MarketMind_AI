@@ -180,6 +180,8 @@ class MarketMindAgent:
         ]
 
         tools_used = []
+        consecutive_failures = 0
+        max_consecutive_failures = 3
         start_time = time.time()
 
         for iteration in range(max_iterations):
@@ -229,14 +231,21 @@ class MarketMindAgent:
                     fn_args = json.loads(tc.function.arguments)
                 except (json.JSONDecodeError, TypeError):
                     fn_args = {}
+                    consecutive_failures += 1
                     result_str = json.dumps({"error": f"Malformed arguments for {fn_name}"})
                     tools_used.append({"tool": fn_name, "args": fn_args})
                     messages.append({"role": "tool", "tool_call_id": tc.id, "content": result_str})
                     continue
 
                 result_str = self._dispatch_tool(fn_name, fn_args)
-                tools_used.append({"tool": fn_name, "args": fn_args})
+                result_data = json.loads(result_str)
 
+                if "error" in result_data:
+                    consecutive_failures += 1
+                else:
+                    consecutive_failures = 0
+
+                tools_used.append({"tool": fn_name, "args": fn_args})
                 messages.append(
                     {
                         "role": "tool",
@@ -244,6 +253,15 @@ class MarketMindAgent:
                         "content": result_str,
                     }
                 )
+
+            # Bail out if tools keep failing
+            if consecutive_failures >= max_consecutive_failures:
+                return {
+                    "answer": "I'm having trouble retrieving data right now. Please try again or rephrase your question.",
+                    "tools_used": tools_used,
+                    "iterations": iteration + 1,
+                    "latency_seconds": round(time.time() - start_time, 2),
+                }
 
         return {
             "answer": "Agent reached max iterations without a final answer.",

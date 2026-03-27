@@ -143,33 +143,37 @@ marketmind-ai/
 ├── config/
 │   ├── schemas.py                  # Spark StructType definitions
 │   └── settings.py                 # Paths, API config, stock list
-├── tests/                          # 308 tests (unit + integration)
+├── scripts/
+│   └── setup_schema.sql            # Unity Catalog schema + table creation
+├── tests/                          # 310+ tests (unit + integration)
 ├── docs/screenshots/               # Pipeline DAGs, UI screenshots
-├── requirements.txt
+├── requirements.txt                # Pinned versions, Python 3.12
 └── pyproject.toml                  # Ruff + pytest config
 ```
 
 ## How to Run
 
 ### Prerequisites
-- Databricks workspace with a cluster (DBR 15+)
+- Databricks workspace with a cluster (DBR 15.4 LTS, Python 3.12)
 - Unity Catalog enabled (catalog: `bootcamp_students`)
 
 ### Steps
 
 1. **Clone the repo** and upload notebooks to Databricks
 
-2. **Seed data** — Run `05a_seed_historical_data.py` to load 60 days of stock history
+2. **Create the schema** — Run `scripts/setup_schema.sql` in a SQL editor to create the Unity Catalog schema and staging tables
 
-3. **Run DLT pipelines:**
-   - Create pipeline from `02_dlt_pipeline.py` (stock prices)
+3. **Seed data** — Run `05a_seed_historical_data.py` to load 60 days of stock history
+
+4. **Run DLT pipelines:**
+   - Create pipeline from `02_dlt_pipeline.py` (stock prices + 1-min candlesticks)
    - Create pipeline from `03_news_pipeline.py` (news + sentiment)
 
-4. **Run analytics** — `05_advanced_analytics.py` (computes RSI, MACD, Bollinger, rankings)
+5. **Run analytics** — `05_advanced_analytics.py` (computes RSI, MACD, Bollinger, rankings)
 
-5. **Test the agent** — `06_ai_agent.py` (6 test queries + MLflow logging)
+6. **Test the agent** — `06_ai_agent.py` (6 test queries + MLflow logging)
 
-6. **Launch the UI** — `07_gradio_ui.py` (opens Gradio with public URL)
+7. **Launch the UI** — `07_gradio_ui.py` (opens Gradio with public URL)
 
 ### Local Testing
 

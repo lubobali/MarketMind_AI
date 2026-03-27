@@ -12,6 +12,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+def _mock_tickers(mock_yf, info_dict, symbols=None):
+    """Set up mock for yf.Tickers batch fetch pattern."""
+    mock_ticker = MagicMock()
+    mock_ticker.info = info_dict
+    mock_tickers_obj = MagicMock()
+    # tickers.tickers[symbol] returns the same mock for any symbol
+    mock_tickers_obj.tickers.__getitem__ = MagicMock(return_value=mock_ticker)
+    mock_yf.Tickers.return_value = mock_tickers_obj
+    return mock_ticker
+
+
 # ── Test: fetch_stock_prices returns correct structure ──────
 class TestFetchStockPrices:
     """The producer must fetch prices and return structured records."""
@@ -31,7 +42,7 @@ class TestFetchStockPrices:
                 "regularMarketVolume": 52_100_000,
                 "marketCap": 2_800_000_000_000,
             }
-            mock_yf.Ticker.return_value = mock_ticker
+            _mock_tickers(mock_yf, mock_ticker.info)
 
             results = fetch_stock_prices(["AAPL"])
 
@@ -55,7 +66,7 @@ class TestFetchStockPrices:
                 "regularMarketVolume": 45_230_100,
                 "marketCap": 2_150_000_000_000,
             }
-            mock_yf.Ticker.return_value = mock_ticker
+            _mock_tickers(mock_yf, mock_ticker.info)
 
             results = fetch_stock_prices(["NVDA"])
             record = results[0]
@@ -77,7 +88,7 @@ class TestFetchStockPrices:
                 "regularMarketVolume": 45_230_100,
                 "marketCap": 2_150_000_000_000,
             }
-            mock_yf.Ticker.return_value = mock_ticker
+            _mock_tickers(mock_yf, mock_ticker.info)
 
             results = fetch_stock_prices(["NVDA"])
             record = results[0]
@@ -105,7 +116,7 @@ class TestFetchStockPrices:
                 "regularMarketVolume": 1_000_000,
                 "marketCap": 500_000_000_000,
             }
-            mock_yf.Ticker.return_value = mock_ticker
+            _mock_tickers(mock_yf, mock_ticker.info)
 
             results = fetch_stock_prices(symbols)
 
@@ -118,7 +129,7 @@ class TestFetchStockPrices:
         from notebooks.kafka_producer import fetch_stock_prices
 
         with patch("notebooks.kafka_producer.yf") as mock_yf:
-            mock_yf.Ticker.side_effect = Exception("API timeout")
+            mock_yf.Tickers.side_effect = Exception("API timeout")
 
             results = fetch_stock_prices(["AAPL"])
 
@@ -140,7 +151,7 @@ class TestFetchStockPrices:
                 "regularMarketVolume": 1_000_000,
                 "marketCap": 500_000_000_000,
             }
-            mock_yf.Ticker.return_value = mock_ticker
+            _mock_tickers(mock_yf, mock_ticker.info)
 
             results = fetch_stock_prices(["AAPL"])
             ts = results[0]["timestamp"]

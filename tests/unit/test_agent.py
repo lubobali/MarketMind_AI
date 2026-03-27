@@ -202,6 +202,15 @@ class TestMarketMindAgent:
         assert len(result["tools_used"]) == 1
         assert result["tools_used"][0]["args"] == {}
 
+    def test_consecutive_tool_failures_bail_out(self, agent):
+        """Agent bails out after 3 consecutive tool failures."""
+        # LLM calls unknown tools 3 times in a row
+        bad_tool = _make_tool_call_response("bad_tool", "{}")
+        agent.client.chat.completions.create.return_value = bad_tool
+
+        result = agent.run("Do something", max_iterations=5)
+        assert "trouble" in result["answer"].lower() or "max iterations" in result["answer"].lower()
+
     def test_result_includes_latency(self, agent):
         """Result dict should include latency_seconds."""
         agent.client.chat.completions.create.return_value = _make_final_response("Done.")

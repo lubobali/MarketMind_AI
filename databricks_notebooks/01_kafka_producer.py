@@ -47,14 +47,16 @@ print(f"Output directory ready: {RAW_PRICES_PATH}")
 # COMMAND ----------
 
 def fetch_stock_prices(symbols):
-    """Fetch current prices for a list of stock symbols from Yahoo Finance."""
+    """Fetch current prices using yf.Tickers (batch — one HTTP call for all symbols)."""
     records = []
     now = datetime.now(timezone.utc).isoformat()
 
+    # Batch fetch — reduces latency vs per-symbol yf.Ticker calls
+    tickers = yf.Tickers(" ".join(symbols))
+
     for symbol in symbols:
         try:
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
+            info = tickers.tickers[symbol].info
 
             price = info.get("regularMarketPrice")
             if price is None:

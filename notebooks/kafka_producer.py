@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 def fetch_stock_prices(symbols: list[str]) -> list[dict]:
     """Fetch current prices for a list of stock symbols.
 
+    Uses yf.Tickers for batch fetching — one HTTP call for all symbols
+    instead of one per symbol, reducing latency significantly.
+
     Args:
         symbols: List of ticker symbols (e.g., ["AAPL", "NVDA"])
 
@@ -28,10 +31,16 @@ def fetch_stock_prices(symbols: list[str]) -> list[dict]:
     records = []
     now = datetime.now(timezone.utc).isoformat()
 
+    # Batch fetch — single request for all symbols
+    try:
+        tickers = yf.Tickers(" ".join(symbols))
+    except Exception as e:
+        logger.warning("Failed to create batch ticker request: %s", e)
+        return records
+
     for symbol in symbols:
         try:
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
+            info = tickers.tickers[symbol].info
 
             price = info.get("regularMarketPrice")
             if price is None:
